@@ -5,6 +5,10 @@ TOP = .
 
 all: install-tools checks unit-tests #integration-tests
 
+.PHONY: replace-dependency
+replace-dependency:
+	@go mod edit -replace $(dependency)=$(target_repo)@$(target_commit_hash); make tidy
+
 .PHONY: install-tools
 install-tools:
 # Thanks for great inspiration https://marcofranssen.nl/manage-go-tools-via-go-modules
