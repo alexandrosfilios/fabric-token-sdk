@@ -24,7 +24,7 @@ jobs:
           path: ${{ env.FTS_PATH }}
 
       - name: Replace dependency (only for library updates)
-        if: ${{ github.event.event_type == "on-library-update" }}
+        if: ${{ github.event.event_type == 'on-library-update' }}
         working-directory: ${{ env.FTS_PATH }}
         run: make replace-dependency dependency={{ github.event.client_payload.dependency }} target_repo={{ github.event.client_payload.target_repo }} target_commit_hash={{ github.event.client_payload.target_commit_hash }}
 
