@@ -26,7 +26,7 @@ jobs:
       - name: Replace dependency (only for library updates)
         if: ${{ github.event.action == 'on-library-update' }}
         working-directory: ${{ env.FTS_PATH }}
-        run: make replace-dependency dependency={{ github.event.client_payload.dependency }} target_repo={{ github.event.client_payload.target_repo }} target_commit_hash={{ github.event.client_payload.target_commit_hash }}
+        run: make replace-dependency dependency=${{ github.event.client_payload.dependency }} target_repo=${{ github.event.client_payload.target_repo }} target_commit_hash=${{ github.event.client_payload.target_commit_hash }}
 
       - name: Set up Go
         uses: actions/setup-go@v3
