@@ -163,7 +163,7 @@ type Network struct {
 	tokenVaultLazyCache        lazy.Provider[string, driver.TokenVault]
 	subscribers                *events.Subscribers
 	defaultPublicParamsFetcher driver3.DefaultPublicParamsFetcher
-
+	tokenQueryExecutor         driver3.TokenQueryExecutor
 	endorsementServiceProvider *endorsement.ServiceProvider
 }
 
@@ -177,6 +177,7 @@ func NewNetwork(
 	viewManager ViewManager,
 	tmsProvider *token2.ManagementServiceProvider,
 	endorsementServiceProvider *endorsement.ServiceProvider,
+	tokenQueryExecutor driver3.TokenQueryExecutor,
 	tracerProvider trace.TracerProvider,
 	defaultPublicParamsFetcher driver3.DefaultPublicParamsFetcher,
 ) *Network {
@@ -200,6 +201,7 @@ func NewNetwork(
 		subscribers:                events.NewSubscribers(),
 		defaultPublicParamsFetcher: defaultPublicParamsFetcher,
 		endorsementServiceProvider: endorsementServiceProvider,
+		tokenQueryExecutor:         tokenQueryExecutor,
 		finalityTracer: tracerProvider.Tracer("finality_listener", tracing.WithMetricsOpts(tracing.MetricsOpts{
 			Namespace:  "tokensdk_fabric",
 			LabelNames: []tracing.LabelName{},
@@ -367,31 +369,7 @@ func (n *Network) FetchPublicParameters(namespace string) ([]byte, error) {
 }
 
 func (n *Network) QueryTokens(context view.Context, namespace string, IDs []*token.ID) ([][]byte, error) {
-	idsRaw, err := json.Marshal(IDs)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed marshalling ids")
-	}
-
-	payloadBoxed, err := context.RunView(chaincode.NewQueryView(
-		namespace,
-		QueryTokensFunctions,
-		idsRaw,
-	).WithNetwork(n.Name()).WithChannel(n.Channel()))
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to query the token chaincode for tokens")
-	}
-
-	// Unbox
-	raw, ok := payloadBoxed.([]byte)
-	if !ok {
-		return nil, errors.Errorf("expected []byte from TCC, got [%T]", payloadBoxed)
-	}
-	var tokens [][]byte
-	if err := json.Unmarshal(raw, &tokens); err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal response")
-	}
-
-	return tokens, nil
+	return n.tokenQueryExecutor.QueryTokens(context, namespace, IDs)
 }
 
 func (n *Network) AreTokensSpent(c view.Context, namespace string, tokenIDs []*token.ID, meta []string) ([]bool, error) {

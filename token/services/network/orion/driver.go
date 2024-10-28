@@ -25,6 +25,8 @@ import (
 
 type DefaultPublicParamsFetcher driver3.DefaultPublicParamsFetcher
 
+type TokenQueryExecutorProvider driver3.TokenQueryExecutorProvider
+
 func NewDriver(
 	onsProvider *orion.NetworkServiceProvider,
 	viewRegistry driver2.Registry,
@@ -36,6 +38,7 @@ func NewDriver(
 	filterProvider *common.AcceptTxInDBFilterProvider,
 	tmsProvider *token.ManagementServiceProvider,
 	defaultPublicParamsFetcher DefaultPublicParamsFetcher,
+	tokenQueryExecutorProvider TokenQueryExecutorProvider,
 	tracerProvider trace.TracerProvider,
 ) driver.NamedDriver {
 	return driver.NamedDriver{
@@ -51,6 +54,7 @@ func NewDriver(
 			filterProvider:             filterProvider,
 			tmsProvider:                tmsProvider,
 			defaultPublicParamsFetcher: defaultPublicParamsFetcher,
+			tokenQueryExecutorProvider: tokenQueryExecutorProvider,
 			tracerProvider:             tracerProvider,
 		},
 	}
@@ -67,6 +71,7 @@ type Driver struct {
 	filterProvider             *common.AcceptTxInDBFilterProvider
 	tmsProvider                *token.ManagementServiceProvider
 	defaultPublicParamsFetcher driver3.DefaultPublicParamsFetcher
+	tokenQueryExecutorProvider TokenQueryExecutorProvider
 	tracerProvider             trace.TracerProvider
 }
 
@@ -89,6 +94,10 @@ func (d *Driver) New(network, _ string) (driver.Network, error) {
 		}
 	}
 
+	tokenQueryExecutor, err := d.tokenQueryExecutorProvider.GetExecutor(network, "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get token query executor")
+	}
 	return NewNetwork(
 		d.viewManager,
 		d.tmsProvider,
@@ -99,6 +108,7 @@ func (d *Driver) New(network, _ string) (driver.Network, error) {
 		d.filterProvider,
 		dbManager,
 		d.defaultPublicParamsFetcher,
+		tokenQueryExecutor,
 		d.tracerProvider,
 	), nil
 }

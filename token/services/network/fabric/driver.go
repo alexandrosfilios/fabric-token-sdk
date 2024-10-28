@@ -25,6 +25,8 @@ import (
 
 type DefaultPublicParamsFetcher driver3.DefaultPublicParamsFetcher
 
+type TokenQueryExecutorProvider driver3.TokenQueryExecutorProvider
+
 type Driver struct {
 	fnsProvider                *fabric.NetworkServiceProvider
 	vaultProvider              vault.Provider
@@ -37,6 +39,7 @@ type Driver struct {
 	identityProvider           driver2.IdentityProvider
 	tracerProvider             trace.TracerProvider
 	defaultPublicParamsFetcher driver3.DefaultPublicParamsFetcher
+	tokenQueryExecutorProvider TokenQueryExecutorProvider
 }
 
 func NewDriver(
@@ -51,6 +54,7 @@ func NewDriver(
 	tracerProvider trace.TracerProvider,
 	identityProvider driver2.IdentityProvider,
 	defaultPublicParamsFetcher DefaultPublicParamsFetcher,
+	tokenQueryExecutorProvider TokenQueryExecutorProvider,
 ) driver.NamedDriver {
 	return driver.NamedDriver{
 		Name: "fabric",
@@ -66,6 +70,7 @@ func NewDriver(
 			identityProvider:           identityProvider,
 			tracerProvider:             tracerProvider,
 			defaultPublicParamsFetcher: defaultPublicParamsFetcher,
+			tokenQueryExecutorProvider: tokenQueryExecutorProvider,
 		},
 	}
 }
@@ -78,6 +83,11 @@ func (d *Driver) New(network, channel string) (driver.Network, error) {
 	ch, err := fns.Channel(channel)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "fabric channel [%s:%s] not found", network, channel)
+	}
+
+	tokenQueryExecutor, err := d.tokenQueryExecutorProvider.GetExecutor(network, channel)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get token query executor for [%s:%s]", network, channel)
 	}
 
 	return NewNetwork(
@@ -97,6 +107,7 @@ func (d *Driver) New(network, channel string) (driver.Network, error) {
 			d.identityProvider,
 			d.tmsProvider,
 		),
+		tokenQueryExecutor,
 		d.tracerProvider,
 		d.defaultPublicParamsFetcher,
 	), nil

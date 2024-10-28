@@ -36,14 +36,15 @@ type IdentityProvider interface {
 }
 
 type Network struct {
-	viewManager    *view2.Manager
-	tmsProvider    *token2.ManagementServiceProvider
-	n              *orion.NetworkService
-	ip             IdentityProvider
-	ledger         *ledger
-	nsFinder       common2.Configuration
-	filterProvider common2.TransactionFilterProvider[*common2.AcceptTxInDBsFilter]
-	finalityTracer trace.Tracer
+	viewManager        *view2.Manager
+	tmsProvider        *token2.ManagementServiceProvider
+	n                  *orion.NetworkService
+	ip                 IdentityProvider
+	ledger             *ledger
+	nsFinder           common2.Configuration
+	filterProvider     common2.TransactionFilterProvider[*common2.AcceptTxInDBsFilter]
+	finalityTracer     trace.Tracer
+	tokenQueryExecutor driver2.TokenQueryExecutor
 
 	vaultLazyCache             lazy.Provider[string, driver.Vault]
 	tokenVaultLazyCache        lazy.Provider[string, driver.TokenVault]
@@ -62,6 +63,7 @@ func NewNetwork(
 	filterProvider common2.TransactionFilterProvider[*common2.AcceptTxInDBsFilter],
 	dbManager *DBManager,
 	defaultPublicParamsFetcher driver2.DefaultPublicParamsFetcher,
+	tokenQueryExecutor driver2.TokenQueryExecutor,
 	tracerProvider trace.TracerProvider,
 ) *Network {
 	loader := &loader{
@@ -85,7 +87,8 @@ func NewNetwork(
 			Namespace:  "tokensdk_orion",
 			LabelNames: []tracing.LabelName{},
 		})),
-		dbManager: dbManager,
+		tokenQueryExecutor: tokenQueryExecutor,
+		dbManager:          dbManager,
 	}
 }
 
@@ -233,11 +236,7 @@ func (n *Network) FetchPublicParameters(namespace string) ([]byte, error) {
 }
 
 func (n *Network) QueryTokens(context view.Context, namespace string, IDs []*token.ID) ([][]byte, error) {
-	resBoxed, err := view2.GetManager(context).InitiateView(NewRequestQueryTokensView(n, namespace, IDs), context.Context())
-	if err != nil {
-		return nil, err
-	}
-	return resBoxed.([][]byte), nil
+	return n.tokenQueryExecutor.QueryTokens(context, namespace, IDs)
 }
 
 func (n *Network) AreTokensSpent(context view.Context, namespace string, tokenIDs []*token.ID, meta []string) ([]bool, error) {
