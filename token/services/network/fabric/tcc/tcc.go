@@ -276,7 +276,10 @@ func (cc *TokenChaincode) QueryTokens(idsRaw []byte, stub shim.ChaincodeStubInte
 		return shim.Error(err.Error())
 	}
 
-	logger.Debugf("query tokens [%v]...", ids)
+	logger.Infof("query tokens [%v]...", ids)
+	for _, t := range ids {
+		logger.Infof("query token: %s", *t)
+	}
 
 	w := translator.New(
 		stub.GetTxID(),
