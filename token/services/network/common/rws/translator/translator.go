@@ -132,7 +132,7 @@ func (t *Translator) QueryTokens(ids []*token.ID) ([][]byte, error) {
 			continue
 			// return nil, errors.Errorf("error creating output ID: %s", err)
 		}
-		logger.Debugf("query state [%s:%s]", id, outputID)
+		logger.Infof("query state [%s:%s]", id, outputID)
 		bytes, err := t.RWSet.GetState(outputID)
 		if err != nil {
 			errs = append(errs, errors.Wrapf(err, "failed getting output for [%s]", outputID))
